@@ -133,8 +133,18 @@ namespace Microsoft.DotNet.Interactive.Server
         }
 
         public static string Serialize(KernelEvent @event) => Serialize(Create(@event));
+        internal static SerializationModel SerializeToModel(KernelEvent @event) => SerializeToModel(Create(@event));
 
         public static string Serialize(IKernelEventEnvelope eventEnvelope)
+        {
+            SerializationModel serializationModel = SerializeToModel(eventEnvelope);
+
+            return JsonConvert.SerializeObject(
+                serializationModel,
+                Serializer.JsonSerializerSettings);
+        }
+
+        internal static SerializationModel SerializeToModel(IKernelEventEnvelope eventEnvelope)
         {
             KernelCommandEnvelope.SerializationModel commandSerializationModel = null;
 
@@ -156,10 +166,7 @@ namespace Microsoft.DotNet.Interactive.Server
                 eventType = eventEnvelope.EventType,
                 command = commandSerializationModel
             };
-
-            return JsonConvert.SerializeObject(
-                serializationModel,
-                Serializer.JsonSerializerSettings);
+            return serializationModel;
         }
 
         internal class SerializationModel

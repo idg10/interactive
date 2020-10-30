@@ -4,8 +4,11 @@
 import { KernelClient, VariableRequest, VariableResponse, DotnetInteractiveClient, ClientFetch } from "./dotnet-interactive-interfaces";
 import { TokenGenerator } from "./tokenGenerator";
 import { signalTransportFactory } from "./signalr-client";
-import { KernelTransport, KernelEventEnvelopeObserver, DisposableSubscription, SubmitCode, SubmitCodeType, KernelCommand } from "./contracts";
+import { KernelTransport, KernelEventEnvelopeObserver, DisposableSubscription, SubmitCode, SubmitCodeType, MessageObserver, LabelledMessageObserver } from "./contracts";
 import { createDefaultClientFetch } from "./clientFetch";
+
+import { kernelTransportFromMessageTransport } from "./kernelTransport";
+
 
 export interface KernelClientImplParameteres {
     clientFetch: (input: RequestInfo, init: RequestInit) => Promise<Response>;
@@ -19,7 +22,7 @@ export class KernelClientImpl implements DotnetInteractiveClient {
     private _rootUrl: string;
     private _kernelTransport: KernelTransport;
     private _tokenGenerator: TokenGenerator;
-    private _configureRequire:(confing:any) => any;
+    private _configureRequire: (confing: any) => any;
     constructor(parameters: KernelClientImplParameteres) {
         this._clientFetch = parameters.clientFetch;
         this._rootUrl = parameters.rootUrl;
@@ -34,6 +37,19 @@ export class KernelClientImpl implements DotnetInteractiveClient {
     public subscribeToKernelEvents(observer: KernelEventEnvelopeObserver): DisposableSubscription {
         let subscription = this._kernelTransport.subscribeToKernelEvents(observer);
         return subscription;
+    }
+
+    public subscribeToMessagesWithLabel<T extends object>(label: string, observer: MessageObserver<T>): DisposableSubscription {
+        return this._kernelTransport.subscribeToMessagesWithLabel(label, observer);
+    }
+
+    public subscribeToMessagesWithLabelPrefix<T extends object>(label: string, observer: LabelledMessageObserver<T>): DisposableSubscription {
+        return this._kernelTransport.subscribeToMessagesWithLabelPrefix(label, observer);
+    }
+
+    public sendMessage<T>(label: string, message: T): Promise<void> {
+        console.log("KernelClientImpl Sending message on " + label);
+        return this._kernelTransport.sendMessage(label, message);
     }
 
     public async getVariable(kernelName: string, variableName: string): Promise<any> {
@@ -123,7 +139,7 @@ export class KernelClientImpl implements DotnetInteractiveClient {
 
     public async submitCommand(commandType: string,command?: any ,targetKernelName?: string ): Promise<string>{
         let token: string = this._tokenGenerator.GetNewToken();
-               
+
         if (!command) {
             command = {};
         }
@@ -169,7 +185,7 @@ export async function createDotnetInteractiveClient(configuration: string | Dotn
     }
 
     if (!kernelTransportFactory) {
-        kernelTransportFactory = signalTransportFactory;
+        kernelTransportFactory = async (rootUrl) => kernelTransportFromMessageTransport(await signalTransportFactory(rootUrl));
     }
 
     let transport = await kernelTransportFactory(rootUrl);
@@ -177,7 +193,7 @@ export async function createDotnetInteractiveClient(configuration: string | Dotn
         clientFetch: clientFetch,
         rootUrl,
         kernelTransport: transport,
-        configureRequire: (config: any) =>{        
+        configureRequire: (config: any) => {
             return (<any>require).config(config) || require;
         }
     });

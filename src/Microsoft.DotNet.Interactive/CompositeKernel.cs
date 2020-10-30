@@ -94,6 +94,7 @@ namespace Microsoft.DotNet.Interactive
             }
 
             RegisterForDisposal(kernel.KernelEvents.Subscribe(PublishEvent));
+            RegisterForDisposal(kernel.KernelMessages.Subscribe(PublishMessage));
             RegisterForDisposal(kernel);
         }
 
