@@ -4,7 +4,7 @@
 import { KernelClient, VariableRequest, VariableResponse, DotnetInteractiveClient, ClientFetch } from "./dotnet-interactive-interfaces";
 import { TokenGenerator } from "./tokenGenerator";
 import { signalTransportFactory } from "./signalr-client";
-import { KernelTransport, KernelEventEnvelopeObserver, DisposableSubscription, SubmitCode, SubmitCodeType, KernelCommand } from "./contracts";
+import { KernelTransport, KernelEventEnvelopeObserver, DisposableSubscription, SubmitCode, SubmitCodeType, KernelChannelMessage, KernelChannelMessageType, KernelCommand, KernelChannel } from "./contracts";
 import { createDefaultClientFetch } from "./clientFetch";
 
 export interface KernelClientImplParameteres {
@@ -34,6 +34,30 @@ export class KernelClientImpl implements DotnetInteractiveClient {
     public subscribeToKernelEvents(observer: KernelEventEnvelopeObserver): DisposableSubscription {
         let subscription = this._kernelTransport.subscribeToKernelEvents(observer);
         return subscription;
+    }
+
+    public getKernelChannel(name: string): KernelChannel {
+        console.log("Creating channel: " + name);
+        return {
+            subscribeToChannelMessages: observer => {
+                console.log("Subscribing on channel: " + name);
+                return this.subscribeToKernelEvents(kernelEvent => {
+                    console.log(`Channel: ${name} has received event of type ${kernelEvent.eventType}`);
+                    if (kernelEvent.eventType === KernelChannelMessageType) {
+                        let message = <KernelChannelMessage>kernelEvent.event;
+                        console.log(`Channel: ${name} has received message for channel ${message.channelName}`);
+                        if (message.channelName === name) {
+                            observer(message);
+                        }
+                    }
+                })
+            },
+            sendMessage: (type, content) => {
+                // TODO.
+                // Do we submit a command? Or should it be an event that's not a command? (Is
+                // that even a thing for the UI -> kernel direction?)
+            }
+         };
     }
 
     public async getVariable(kernelName: string, variableName: string): Promise<any> {

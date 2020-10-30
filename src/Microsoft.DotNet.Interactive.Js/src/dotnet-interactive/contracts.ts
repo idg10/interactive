@@ -102,6 +102,7 @@ export const ErrorProducedType = "ErrorProduced";
 export const HoverTextProducedType = "HoverTextProduced";
 export const IncompleteCodeSubmissionReceivedType = "IncompleteCodeSubmissionReceived";
 export const InputRequestedType = "InputRequested";
+export const KernelChannelMessageType = "KernelChannelMessage";
 export const KernelExtensionLoadedType = "KernelExtensionLoaded";
 export const KernelReadyType = "KernelReady";
 export const NotebookParsedType = "NotebookParsed";
@@ -127,6 +128,7 @@ export type KernelEventType =
     | typeof HoverTextProducedType
     | typeof IncompleteCodeSubmissionReceivedType
     | typeof InputRequestedType
+    | typeof KernelChannelMessageType
     | typeof KernelExtensionLoadedType
     | typeof KernelReadyType
     | typeof NotebookParsedType
@@ -346,4 +348,19 @@ export interface KernelTransport extends Disposable {
     subscribeToKernelEvents(observer: KernelEventEnvelopeObserver): DisposableSubscription;
     submitCommand(command: KernelCommand, commandType: KernelCommandType, token: string): Promise<void>;
     waitForReady(): Promise<void>;
+}
+
+export interface KernelChannelMessage extends KernelEvent {
+    channelName: string;
+    type: string;
+    content: string;
+}
+
+export interface KernelChannelMessageObserver {
+    (message: KernelChannelMessage): void;
+}
+
+export interface KernelChannel {
+    subscribeToChannelMessages(observer: KernelChannelMessageObserver): DisposableSubscription;
+    sendMessage(type: string, content: string): void;
 }

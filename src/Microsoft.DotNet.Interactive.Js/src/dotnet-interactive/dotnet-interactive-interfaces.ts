@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { KernelEventEnvelopeObserver, DisposableSubscription } from "./contracts";
+import { KernelEventEnvelopeObserver, DisposableSubscription, KernelChannel } from "./contracts";
 
 
 export interface VariableRequest {
@@ -32,6 +32,7 @@ export interface DotnetInteractiveClient {
     submitCode(code: string, targetKernelName?: string): Promise<string>;
     submitCommand(commandType: string, command?: any, targetKernelName?: string): Promise<string>;
     configureRequire(config: any): any;
+    getKernelChannel(name: string): KernelChannel;
 }
 
 export interface KernelClientContainer {

@@ -233,7 +233,37 @@ namespace Microsoft.DotNet.Interactive
         public IReadOnlyCollection<ICommand> Directives => SubmissionParser.Directives;
 
         public void AddDirective(Command command) => SubmissionParser.AddDirective(command);
-        
+
+        public KernelChannel GetChannel(string name)
+        {
+            return new KernelChannel(name, this);
+        }
+
+        public class KernelChannel
+        {
+            private readonly string _name;
+            private readonly Kernel _kernel;
+
+            internal KernelChannel(string name, Kernel kernel)
+            {
+                _name = name;
+                _kernel = kernel;
+            }
+
+            public IObservable<KernelChannelMessageData> Messages { get; }
+            // TODO: should this be async, enabling callers to know the message has been delivered?
+            public void SendMessage(KernelChannelMessageData message)
+            {
+                _kernel.PublishEvent(new KernelChannelMessage(_name, message.Type, message.Content));
+            }
+        }
+
+        public class KernelChannelMessageData
+        {
+            public string Type { get; set; }
+            public string Content { get; set; }
+        }
+
         private class KernelOperation
         {
             public KernelOperation(KernelCommand command, TaskCompletionSource<KernelCommandResult> taskCompletionSource)
